@@ -63,32 +63,41 @@ class UserCacheManager:
 
     def update_user_cache(self, user: User, chat_id: int):
         """根据配置更新或插入用户信息到缓存"""
-        # 第一重门：检查总开关
         if not self.config.enable_user_cache:
             return
 
-        # 第二重门：检查是否在指定群组
         if self.config.user_cache_group_ids and chat_id not in self.config.user_cache_group_ids:
-            return
-            
-        # 第三重门：只处理有用户名的用户
-        if not user.username:
             return
 
         try:
             with self.get_connection() as conn:
-                current_time = time.time()
-                conn.execute("""
-                    INSERT INTO user_cache (user_id, username, first_name, last_name, last_seen)
-                    VALUES (?, ?, ?, ?, ?)
-                    ON CONFLICT(user_id) DO UPDATE SET
-                        username = excluded.username,
-                        first_name = excluded.first_name,
-                        last_name = excluded.last_name,
-                        last_seen = excluded.last_seen
-                """, (user.id, user.username, user.first_name, user.last_name, current_time))
+                cursor = conn.cursor()
+                existing_user = cursor.execute("SELECT username, first_name, last_name FROM user_cache WHERE user_id = ?", (user.id,)).fetchone()
+                
+                username_log_str = f" (@{user.username})" if user.username else ""
+
+                if not existing_user:
+                    # 新用户: 插入
+                    current_time = time.time()
+                    cursor.execute("""
+                        INSERT INTO user_cache (user_id, username, first_name, last_name, last_seen)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (user.id, user.username, user.first_name, user.last_name, current_time))
+                    logger.info(f"已缓存新用户: {user.id}{username_log_str}")
+                else:
+                    # 已存在用户: 仅在信息变化时更新
+                    if (existing_user['username'] != user.username or
+                        existing_user['first_name'] != user.first_name or
+                        existing_user['last_name'] != user.last_name):
+                        # 用户信息已改变: 更新
+                        current_time = time.time()
+                        cursor.execute("""
+                            UPDATE user_cache SET username = ?, first_name = ?, last_name = ?, last_seen = ?
+                            WHERE user_id = ?
+                        """, (user.username, user.first_name, user.last_name, current_time, user.id))
+                        logger.info(f"用户信息已更新: {user.id}{username_log_str}")
+                
                 conn.commit()
-                logger.debug(f"已更新用户缓存: {user.id} (@{user.username})")
         except Exception as e:
             logger.error(f"更新用户缓存失败: {e}")
 
@@ -117,11 +126,9 @@ class UserCacheManager:
             logger.error(f"通过用户名获取用户失败: {e}")
             return None
 
-_user_cache_manager = None
+# 在模块加载时直接创建单例
+_user_cache_manager = UserCacheManager()
 
 def get_user_cache_manager() -> UserCacheManager:
     """获取用户缓存管理器实例（单例模式）"""
-    global _user_cache_manager
-    if _user_cache_manager is None:
-        _user_cache_manager = UserCacheManager()
     return _user_cache_manager

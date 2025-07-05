@@ -39,7 +39,7 @@ async def cache_user_info(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if user.username:
         try:
             user_cache_manager.update_user_cache(user, chat_id)
-            logger.info(f"[UserCache] 已缓存用户信息: {user.id} (@{user.username}) 来自群组: {chat_id}")
+            # 日志记录已移至 user_cache_manager 内部，此处不再重复记录
         except Exception as e:
             logger.error(f"[UserCache] 缓存用户信息失败: {e}")
     else:
