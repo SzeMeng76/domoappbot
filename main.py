@@ -55,11 +55,11 @@ logging.basicConfig(
     level=getattr(logging, config.log_level.upper(), logging.INFO),
     handlers=[
         logging.handlers.RotatingFileHandler(
-            config.log_file, 
+            config.log_file,
             maxBytes=config.log_max_size,
             backupCount=config.log_backup_count,
             encoding="utf-8"
-        ), 
+        ),
         logging.StreamHandler()
     ],
 )
@@ -92,6 +92,7 @@ from utils.script_loader import init_script_loader
 from utils.message_delete_scheduler import message_delete_scheduler
 from utils.log_manager import schedule_log_maintenance
 from utils.user_cache_manager import get_user_cache_manager  # 新增：导入用户缓存管理器
+from handlers.user_cache_handler import setup_user_cache_handler  # 新增：导入用户缓存处理器
 
 # ========================================
 # 导入命令模块
@@ -120,7 +121,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
             from utils.message_manager import send_and_auto_delete
             from utils.config_manager import get_config
             config = get_config()
-            
+
             # 使用自动删除功能发送错误消息
             await send_and_auto_delete(
                 context=context,
@@ -168,7 +169,7 @@ def setup_handlers(application: Application):
 async def setup_application(application: Application, config) -> None:
     """异步设置应用"""
     logger.info(" 开始初始化机器人应用...")
-    
+
     # ========================================
     # 第一步：初始化核心组件
     # ========================================
@@ -176,10 +177,10 @@ async def setup_application(application: Application, config) -> None:
     cache_manager = CacheManager(config.cache_dir)
     rate_converter = RateConverter(config.exchange_rate_api_keys, cache_manager)
     httpx_client = httpx.AsyncClient()
-    
+
     # 新增：初始化用户缓存管理器
     user_cache_manager = get_user_cache_manager()
-    
+
     # 将核心组件存储到 bot_data 中
     application.bot_data["cache_manager"] = cache_manager
     application.bot_data["rate_converter"] = rate_converter
@@ -202,55 +203,55 @@ async def setup_application(application: Application, config) -> None:
     app_store.set_cache_manager(cache_manager)
     google_play.set_rate_converter(rate_converter)
     apple_services.set_rate_converter(rate_converter)
-    
+
     # 新增：为需要用户缓存的模块注入依赖
     # 这里可以根据实际需要为特定命令模块注入用户缓存管理器
     # 例如：system_commands.set_user_cache_manager(user_cache_manager)
-    
+
     logger.info("✅ 命令模块依赖注入完成")
 
     # ========================================
     # 第三步：初始化任务管理系统
     # ========================================
     logger.info("⚙️ 初始化任务管理系统...")
-    
+
     # 初始化任务管理器
     from utils.task_manager import get_task_manager
     task_manager = get_task_manager()
     logger.info(f" 任务管理器已初始化，最大任务数: {task_manager.max_tasks}")
-    
+
     # 初始化定时任务调度器
     task_scheduler = init_task_scheduler(cache_manager)
     application.bot_data["task_scheduler"] = task_scheduler
-    
+
     # 根据配置添加定时清理任务
     cleanup_tasks_added = 0
     if config.spotify_weekly_cleanup:
         task_scheduler.add_weekly_cache_cleanup("spotify", "spotify", weekday=6, hour=5, minute=0)
         logger.info(" 已配置 Spotify 每周日UTC 5:00 定时清理")
         cleanup_tasks_added += 1
-    
+
     if config.disney_weekly_cleanup:
         task_scheduler.add_weekly_cache_cleanup("disney_plus", "disney_plus", weekday=6, hour=5, minute=0)
         logger.info(" 已配置 Disney+ 每周日UTC 5:00 定时清理")
         cleanup_tasks_added += 1
-    
+
     # 启动任务调度器（如果有任务）
     if cleanup_tasks_added > 0:
         task_scheduler.start()
         logger.info(f" 定时任务调度器已启动，活动任务: {cleanup_tasks_added} 个")
     else:
         logger.info("⏸️ 无定时清理任务，调度器保持待机状态")
-    
+
     # 启动消息删除调度器
     message_delete_scheduler.start(application.bot)
     application.bot_data["message_delete_scheduler"] = message_delete_scheduler
     logger.info("️ 消息删除调度器已启动")
-    
+
     # 调度日志维护任务
     schedule_log_maintenance()
     logger.info(" 日志维护任务已调度")
-    
+
     logger.info("✅ 任务管理系统初始化完成")
 
     # ========================================
@@ -266,34 +267,41 @@ async def setup_application(application: Application, config) -> None:
     # ========================================
     # 第五步：设置命令处理器
     # ========================================
-    logger.info(" 设置命令处理器...")
+    logger.info("🔧 设置命令处理器...")
     setup_handlers(application)
     logger.info("✅ 命令处理器设置完成")
+
+    # ========================================
+    # 第五步半：设置用户缓存处理器
+    # ========================================
+    logger.info("🔧 设置用户缓存处理器...")
+    setup_user_cache_handler(application)
+    logger.info("✅ 用户缓存处理器设置完成")
 
     # ========================================
     # 第六步：设置机器人命令菜单
     # ========================================
     logger.info(" 设置机器人命令菜单...")
-    
+
     # 获取所有权限级别的命令
     user_commands = command_factory.get_command_list(Permission.USER)
     admin_commands = command_factory.get_command_list(Permission.ADMIN)
     super_admin_commands = command_factory.get_command_list(Permission.SUPER_ADMIN)
-    
+
     # 合并所有命令（超级管理员能看到所有命令）
     all_commands = {}
     all_commands.update(user_commands)
     all_commands.update(admin_commands)
     all_commands.update(super_admin_commands)
-    
+
     # 手动添加由ConversationHandler处理的admin命令
     all_commands["admin"] = "打开管理员面板"
-    
+
     # 创建机器人命令列表
     bot_commands = [
         BotCommand(command, description) for command, description in all_commands.items()
     ]
-    
+
     try:
         await application.bot.set_my_commands(bot_commands)
         logger.info(f"✅ 命令菜单设置完成:")
@@ -310,7 +318,7 @@ async def setup_application(application: Application, config) -> None:
     if config.load_custom_scripts:
         logger.info(" 加载自定义脚本...")
         script_loader = init_script_loader(config.custom_scripts_dir)
-        
+
         # 准备机器人上下文供脚本使用
         bot_context = {
             'application': application,
@@ -321,26 +329,26 @@ async def setup_application(application: Application, config) -> None:
             'config': config,
             'logger': logger
         }
-        
+
         # 加载脚本
         success = script_loader.load_scripts(bot_context)
         if success:
             logger.info("✅ 自定义脚本加载完成")
         else:
             logger.warning("⚠️ 部分自定义脚本加载失败")
-            
+
         # 将脚本加载器存储到bot_data中
         application.bot_data["script_loader"] = script_loader
     else:
         logger.info(" 自定义脚本加载已禁用")
-    
+
     logger.info(" 机器人应用初始化完成！")
 
 
 async def cleanup_application(application: Application) -> None:
     """清理应用资源"""
     logger.info(" 开始清理应用资源...")
-    
+
     try:
         # ========================================
         # 第一步：关闭网络连接
@@ -348,33 +356,33 @@ async def cleanup_application(application: Application) -> None:
         if "httpx_client" in application.bot_data:
             await application.bot_data["httpx_client"].aclose()
             logger.info("✅ httpx客户端已关闭")
-        
+
         # ========================================
         # 第二步：停止调度器
         # ========================================
         if "task_scheduler" in application.bot_data:
             application.bot_data["task_scheduler"].stop()
             logger.info("✅ 定时任务调度器已停止")
-        
+
         if "message_delete_scheduler" in application.bot_data:
             application.bot_data["message_delete_scheduler"].stop()
             logger.info("✅ 消息删除调度器已停止")
-        
+
         # ========================================
         # 第三步：关闭任务管理器
         # ========================================
         from utils.task_manager import shutdown_task_manager
         await shutdown_task_manager()
         logger.info("✅ 任务管理器已关闭")
-        
+
         # ========================================
         # 第四步：清理用户缓存管理器（如果需要）
         # ========================================
         # 用户缓存管理器使用 SQLite，通常不需要特殊清理
         # 但如果有连接池或其他资源，可以在这里处理
-        
+
         logger.info(" 应用资源清理完成")
-            
+
     except Exception as e:
         logger.error(f"❌ 清理资源时出错: {e}")
 
@@ -386,7 +394,7 @@ def main() -> None:
     # ========================================
     logger.info(" 验证环境配置...")
     config = get_config()
-    
+
     # 验证 Bot Token
     bot_token = config.bot_token
     if not bot_token:
@@ -416,7 +424,7 @@ def main() -> None:
     async def init_and_run(app):
         await setup_application(app, config)
         logger.info("✅ 机器人启动完成，开始服务...")
-    
+
     application.post_init = init_and_run
     application.post_shutdown = cleanup_application
 
@@ -432,7 +440,7 @@ def main() -> None:
             logger.info(" Webhook 模式启动")
             logger.info(f" Webhook URL: {webhook_url}")
             logger.info(f" 本地监听: {config.webhook_listen}:{config.webhook_port}")
-            
+
             application.run_webhook(
                 listen=config.webhook_listen,
                 port=config.webhook_port,
@@ -444,7 +452,7 @@ def main() -> None:
             # Polling 模式
             logger.info(" Polling 模式启动")
             application.run_polling(allowed_updates=Update.ALL_TYPES)
-            
+
     except KeyboardInterrupt:
         logger.info("⏹️ 接收到停止信号，正在关闭机器人...")
     except Exception as e:

@@ -36,7 +36,7 @@ async def group_message_alerter(update: Update, context: ContextTypes.DEFAULT_TY
     处理群组消息并回复的处理器。
     """
     message = update.message
-    
+
     # 确保消息和聊天存在
     if not message or not message.chat:
         return
@@ -46,7 +46,7 @@ async def group_message_alerter(update: Update, context: ContextTypes.DEFAULT_TY
     # 1. 检查当前群组是否在我们的监听列表里
     if chat_id_str not in alerter_config:
         return
-    
+
     # 2. 从配置中获取此群组对应的授权用户名
     authorized_username = alerter_config[chat_id_str]
     logger.debug(f"[Alerter] 群组 {chat_id_str} 命中监听规则，目标用户: @{authorized_username}")
@@ -65,7 +65,7 @@ async def group_message_alerter(update: Update, context: ContextTypes.DEFAULT_TY
     elif sender_chat and sender_chat.username and sender_chat.username.lower() == auth_user_lower:
         logger.debug(f"[Alerter] 匹配到授权频道: @{sender_chat.username}")
         is_authorized = True
-    
+
     if not is_authorized:
         return
 
@@ -73,17 +73,17 @@ async def group_message_alerter(update: Update, context: ContextTypes.DEFAULT_TY
     text_to_search = message.text or message.caption or ""
     if not text_to_search:
         return
-    
+
     # 正则表达式查找 @username
-    usernames = re.findall(r'\B@(\w{5,32})\b', text_to_search)
+    usernames = re.findall(r'@([a-zA-Z_]\w{0,31})(?=\s|$|[^\w])', text_to_search)
     if not usernames:
         logger.debug("[Alerter] 消息中未找到@提及，跳过。")
         return
-    
+
     # 5. 获取第一个被@的用户，并从缓存中查询其ID
     mentioned_username = usernames[0]
     logger.info(f"[Alerter] 检测到 @{authorized_username} 在群组 {chat_id_str} 中提及了 @{mentioned_username}")
-    
+
     real_user_id = None
     if user_cache_manager:
         # 使用 .get_user_by_username()
@@ -98,13 +98,13 @@ async def group_message_alerter(update: Update, context: ContextTypes.DEFAULT_TY
     else:
         logger.warning(f"[Alerter] 无法在缓存中找到 @{mentioned_username} 的ID，将使用用户名链接。")
         user_link = f"https://t.me/{mentioned_username}"
-    
+
     reply_text = ALERT_TEMPLATE.format(
         owner_username=mentioned_username,
         owner_id=real_user_id if real_user_id else "未知ID",
         user_link=user_link
     )
-    
+
     # 7. 发送回复
     try:
         await message.reply_text(
@@ -123,10 +123,10 @@ def load(bot_context):
     脚本加载入口函数。
     """
     global user_cache_manager, alerter_config
-    
+
     application = bot_context.get('application')
     config = bot_context.get('config')
-    
+
     # 检查是否获取到核心组件
     if not application or not config:
         logger.error("[Alerter] 无法从 bot_context 中获取 application 或 config 实例。")
@@ -148,9 +148,9 @@ def load(bot_context):
 
     # 监听所有包含文本或标题的非命令超级群组消息
     handler = MessageHandler(
-        filters.ChatType.SUPERGROUP & (~filters.COMMAND) & (filters.TEXT | filters.CAPTION), 
+        filters.ChatType.SUPERGROUP & (~filters.COMMAND) & (filters.TEXT | filters.CAPTION),
         group_message_alerter
     )
     application.add_handler(handler)
-    
+
     logger.info(f"自定义脚本 [Alerter] 加载成功，监听 {len(alerter_config)} 个群组。")

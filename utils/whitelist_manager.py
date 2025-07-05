@@ -5,7 +5,7 @@ from typing import Set
 logger = logging.getLogger(__name__)
 
 class WhitelistManager:
-    def __init__(self, db_path: str = "whitelist.db"):
+    def __init__(self, db_path: str = "data/permissions.db"):
         self.db_path = db_path
         self._initialize_db()
 

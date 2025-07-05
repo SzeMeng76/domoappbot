@@ -7,7 +7,7 @@ from utils.cache_manager import CacheManager
 logger = logging.getLogger(__name__)
 
 class AdminManager:
-    def __init__(self, db_path: str = "admin_data.db"):
+    def __init__(self, db_path: str = "data/permissions.db"):
         self.db_path = db_path
         self.super_admin_id = int(os.getenv('SUPER_ADMIN_ID', 0))
         self.whitelist_manager = WhitelistManager()
@@ -19,7 +19,7 @@ class AdminManager:
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-            
+
             # 创建管理员权限表
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS admin_permissions (
@@ -32,7 +32,7 @@ class AdminManager:
                     granted_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            
+
             conn.commit()
             conn.close()
             logger.info(f"Admin database initialized at {self.db_path}")
@@ -69,11 +69,11 @@ class AdminManager:
         """检查是否为管理员（包括超级管理员）"""
         if self.is_super_admin(user_id):
             return True
-        
+
         try:
             result = self._execute_query(
-                "SELECT 1 FROM admin_permissions WHERE user_id = ?", 
-                (user_id,), 
+                "SELECT 1 FROM admin_permissions WHERE user_id = ?",
+                (user_id,),
                 fetch_one=True
             )
             return result is not None
@@ -84,17 +84,17 @@ class AdminManager:
         """检查用户是否有特定权限"""
         if self.is_super_admin(user_id):
             return True
-        
+
         try:
             column_map = {
                 'manage_users': 'can_manage_users',
                 'manage_groups': 'can_manage_groups',
                 'clear_cache': 'can_clear_cache'
             }
-            
+
             if permission not in column_map:
                 return False
-                
+
             result = self._execute_query(
                 f"SELECT {column_map[permission]} FROM admin_permissions WHERE user_id = ?",
                 (user_id,),
@@ -109,9 +109,9 @@ class AdminManager:
         try:
             if permissions is None:
                 permissions = {'can_manage_users': False, 'can_manage_groups': False, 'can_clear_cache': False}
-            
+
             self._execute_query("""
-                INSERT OR REPLACE INTO admin_permissions 
+                INSERT OR REPLACE INTO admin_permissions
                 (user_id, username, can_manage_users, can_manage_groups, can_clear_cache, granted_by)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (
@@ -161,7 +161,7 @@ class AdminManager:
             if os.path.exists(cache_dir):
                 shutil.rmtree(cache_dir)
                 os.makedirs(cache_dir)
-            
+
             # 重新初始化缓存管理器
             self.cache_manager = CacheManager()
             logger.info("All cache cleared")
