@@ -18,6 +18,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 将项目中的所有文件复制到容器的 /app 目录中。
 COPY . .
 
+# --- ✨✨✨ 添加间谍代码！✨✨✨ ---
+# 这一行会像一个摄像头，拍下 /app 目录里所有的文件列表，帮助我们调试。
+# 找到问题后可以删除这一行。
+RUN ls -laR /app
+
 # --- 暴露端口 ---
 # 声明容器将要监听的端口。这主要是一个文档性质的声明，
 # 真正的端口映射是在 docker run 或 docker-compose.yml 中完成的。
