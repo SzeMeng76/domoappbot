@@ -1,80 +1,119 @@
+# 工作流程名称
 name: Docker Image CI
 
+# 触发条件：
+# 1. 当一个 'v*.*.*' 格式的 tag被推送到仓库时
+# 2. 或者当手动在 Actions 页面点击 'Run workflow' 时
 on:
   push:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
 
+# 定义一个 job
 jobs:
   build-and-push:
+    # 运行在最新的 ubuntu 系统上
     runs-on: ubuntu-latest
+    # 授予 job 的权限，需要读取仓库内容和写入 GitHub Packages (GHCR)
     permissions:
       contents: read
-      packages: write 
+      packages: write
 
+    # job 的执行步骤
     steps:
-    - name: Check out the repo
-      uses: actions/checkout@v4
-    
-    # 改进的版本提取逻辑
-    - name: Extract version
-      id: tag_version
-      run: |
-        if [[ $GITHUB_REF == refs/tags/* ]]; then
-          # 从标签提取版本号 (v1.0.0 -> 1.0.0)
-          VERSION=${GITHUB_REF#refs/tags/v}
+      # 第一步：拉取代码
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      # 第二步：提取版本号，并判断是否为正式发布
+      - name: Extract version and release status
+        id: extract_version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            # 如果是 tag 触发 (v1.0.0)，就提取版本号 1.0.0
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "IS_RELEASE=true" >> $GITHUB_ENV
+          else
+            # 如果是手动触发，就生成一个 dev-时间戳 格式的版本号
+            VERSION="dev-$(date +'%Y%m%d-%H%M%S')"
+            echo "IS_RELEASE=false" >> $GITHUB_ENV
+          fi
+          # 将版本号设置为环境变量，供后续步骤使用
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "IS_RELEASE=true" >> $GITHUB_ENV
-        else
-          # 非标签触发，使用开发版本号
-          VERSION=dev-$(date +'%Y%m%d-%H%M%S')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "IS_RELEASE=false" >> $GITHUB_ENV
-        fi
-        echo "Generated version: $VERSION"
-    
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-    
-    - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    
-    # 为发布版本构建镜像
-    - name: Build and push release image
-      if: env.IS_RELEASE == 'true'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: |
-          domomido/appbot:${{ env.VERSION }}
-          domomido/appbot:latest
-          ghcr.io/${{ github.repository }}:${{ env.VERSION }}
-          ghcr.io/${{ github.repository }}:latest
-        platforms: linux/amd64,linux/arm64
-    
-    # 为开发版本构建镜像
-    - name: Build and push dev image
-      if: env.IS_RELEASE == 'false'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: |
-          domomido/appbot:${{ env.VERSION }}
-          ghcr.io/${{ github.repository }}:${{ env.VERSION }}
-        platforms: linux/amd64,linux/arm64
+          echo "Version is: $VERSION"
+
+      # 第三步：设置 Python 环境
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # ✨ 注意：如果你的项目需要，请改成你自己的 Python 版本
+          python-version: '3.10' 
+      
+      # 第四步：安装 Python 依赖
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # ✨ 注意：如果你的依赖文件名不是 requirements.txt，请修改这里
+          pip install -r requirements.txt 
+
+      # 第五步：动态生成 Docker 镜像的标签
+      - name: Generate Docker tags
+        id: meta
+        run: |
+          # 自动使用你的 Docker Hub 用户名和仓库名
+          DOCKER_IMAGE_DOCKERHUB="${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}"
+          # 自动使用你的 GitHub 用户名和仓库名
+          DOCKER_IMAGE_GHCR="ghcr.io/${{ github.repository }}"
+          
+          TAGS=""
+          if [[ "${{ env.IS_RELEASE }}" == "true" ]]; then
+            # 正式版：生成 4 个标签 (Docker Hub 和 GHCR 的 latest + 版本号)
+            TAGS="$DOCKER_IMAGE_DOCKERHUB:latest,$DOCKER_IMAGE_DOCKERHUB:${{ env.VERSION }},$DOCKER_IMAGE_GHCR:latest,$DOCKER_IMAGE_GHCR:${{ env.VERSION }}"
+          else
+            # 开发版：生成 2 个标签 (Docker Hub 和 GHCR 的版本号)
+            TAGS="$DOCKER_IMAGE_DOCKERHUB:${{ env.VERSION }},$DOCKER_IMAGE_GHCR:${{ env.VERSION }}"
+          fi
+          
+          # 将生成的标签字符串输出，供后续步骤引用
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "Generated tags: ${TAGS}"
+
+      # 第六步：设置 QEMU，用于多平台构建
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # 第七步：设置 Docker Buildx，新一代的构建工具
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 第八步：登录到 Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 第九步：登录到 GitHub Container Registry (GHCR)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      # 第十步：构建并推送 Docker 镜像 (一个步骤搞定所有)
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          # 构建上下文为当前目录
+          context: .
+          # 推送镜像
+          push: true
+          # 使用上面 'meta' 步骤生成的动态标签
+          tags: ${{ steps.meta.outputs.tags }}
+          # 构建支持 amd64 和 arm64 两种架构的镜像
+          platforms: linux/amd64,linux/arm64
+          # 开启 GitHub Actions 的缓存，加速后续构建
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
