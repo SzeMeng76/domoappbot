@@ -51,7 +51,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
  
-      # 第五步：动态生成 Docker 镜像的标签 (已修复大小写问题)
+      # 第五步：动态生成 Docker 镜像的标签 (已更新为总是包含 latest)
       - name: Generate Docker tags
         id: meta
         run: |
@@ -64,12 +64,8 @@ jobs:
           DOCKER_IMAGE_DOCKERHUB="$DOCKERHUB_USER_LOWER/$REPO_NAME_LOWER"
           DOCKER_IMAGE_GHCR="ghcr.io/$GHCR_REPO_LOWER"
           
-          TAGS=""
-          if [[ "${{ env.IS_RELEASE }}" == "true" ]]; then
-            TAGS="$DOCKER_IMAGE_DOCKERHUB:latest,$DOCKER_IMAGE_DOCKERHUB:${{ env.VERSION }},$DOCKER_IMAGE_GHCR:latest,$DOCKER_IMAGE_GHCR:${{ env.VERSION }}"
-          else
-            TAGS="$DOCKER_IMAGE_DOCKERHUB:${{ env.VERSION }},$DOCKER_IMAGE_GHCR:${{ env.VERSION }}"
-          fi
+          # 无论是不是正式版，都同时打上 a) 版本号标签 和 b) latest 标签
+          TAGS="$DOCKER_IMAGE_DOCKERHUB:latest,$DOCKER_IMAGE_DOCKERHUB:${{ env.VERSION }},$DOCKER_IMAGE_GHCR:latest,$DOCKER_IMAGE_GHCR:${{ env.VERSION }}"
           
           echo "tags=${TAGS}" >> $GITHUB_OUTPUT
           echo "Generated tags: ${TAGS}"
