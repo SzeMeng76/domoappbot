@@ -856,7 +856,6 @@ async def steam_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not context.args:
         help_message = (
             "*🎮 Steam游戏价格查询*\n"
-            "_Author:_ Domo\n\n"
             "*指令列表：*\n"
             "`/steam` [游戏名称/ID] [国家代码] - 查询游戏价格\n"
             "`/steamb` <捆绑包名称/ID> [国家代码] - 查询捆绑包价格\n"
