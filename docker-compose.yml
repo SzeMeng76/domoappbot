@@ -15,7 +15,7 @@ services:
     # 当您想从 Docker Hub 拉取预构建的镜像（例如，由 GitHub Actions 构建的）来运行时，
     # 可以注释掉上面的 `build: .`，然后使用下面的 `image` 指令。
     # 请将 'your-dockerhub-username/appbot:latest' 替换为您自己的镜像地址。
-    image: domomido/appbot:latest
+    image: szemeng76/domoappbot:latest
 
     # --- 容器配置 ---
     # 给容器一个固定的名字，方便管理。
@@ -41,5 +41,5 @@ services:
     # 将当前目录（.）挂载到容器内的 /app 目录。
     # 这意味着您在本地对代码的任何修改，都会立即反映在运行的容器中，
     # 无需重新构建镜像，极大地提高了开发效率。
-    #volumes:
-    #  - .:/app
+#    volumes:
+#      - .:/app
