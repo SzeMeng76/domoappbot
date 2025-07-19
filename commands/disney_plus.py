@@ -20,7 +20,7 @@ from utils.message_manager import schedule_message_deletion
 logger = logging.getLogger(__name__)
 
 # Data source URL
-DATA_URL = "https://raw.githubusercontent.com/SzeMeng76/disneyplus-prices/refs/heads/main/disneyplus_prices_cny_sorted.json"
+DATA_URL = "https://raw.githubusercontent.com/SzeMeng76/disneyplus-prices/refs/heads/main/disneyplus_prices_processed.json"
 
 class DisneyPriceBot(PriceQueryService):
     """Manages Disney+ price data fetching, caching, and formatting."""
