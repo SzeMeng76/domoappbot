@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import re
-import time
 from datetime import timedelta
 
 import httpx
@@ -13,7 +12,6 @@ from utils.country_data import SUPPORTED_COUNTRIES, COUNTRY_NAME_TO_CODE, get_co
 from utils.price_parser import extract_price_value_from_country_info
 from utils.command_factory import command_factory
 from utils.permissions import Permission
-from utils.message_manager import schedule_message_deletion
 from utils.message_manager import schedule_message_deletion
 from utils.formatter import foldable_text_v2, foldable_text_with_markdown_v2
 from utils.config_manager import get_config
@@ -395,7 +393,7 @@ async def apple_services_command(update: Update, context: ContextTypes.DEFAULT_T
                 text=foldable_text_v2(cache_message),
                 parse_mode="MarkdownV2"
             )
-            message_delete_manager.add_task(sent_message.chat_id, sent_message.message_id, delay=config.auto_delete_delay)
+            schedule_message_deletion(chat_id=sent_message.chat_id, message_id=sent_message.message_id, delay=config.auto_delete_delay)
             return
         except Exception as e:
             logger.error(f"Error clearing Apple Services cache: {e}")
@@ -407,7 +405,7 @@ async def apple_services_command(update: Update, context: ContextTypes.DEFAULT_T
                 text=foldable_text_v2(error_message),
                 parse_mode="MarkdownV2"
             )
-            message_delete_manager.add_task(sent_message.chat_id, sent_message.message_id, delay=config.auto_delete_delay)
+            schedule_message_deletion(chat_id=sent_message.chat_id, message_id=sent_message.message_id, delay=config.auto_delete_delay)
             return
 
     service = args[0].lower()
@@ -420,7 +418,7 @@ async def apple_services_command(update: Update, context: ContextTypes.DEFAULT_T
             text=foldable_text_v2(invalid_service_message),
             parse_mode="MarkdownV2"
         )
-        message_delete_manager.add_task(sent_message.chat_id, sent_message.message_id, delay=config.auto_delete_delay)
+        schedule_message_deletion(chat_id=sent_message.chat_id, message_id=sent_message.message_id, delay=config.auto_delete_delay)
         return
 
     try:
@@ -517,7 +515,7 @@ async def apple_services_command(update: Update, context: ContextTypes.DEFAULT_T
             text=foldable_text_v2(error_message),
             parse_mode="MarkdownV2"
         )
-        message_delete_manager.add_task(sent_message.chat_id, sent_message.message_id, delay=config.auto_delete_delay)
+        schedule_message_deletion(chat_id=sent_message.chat_id, message_id=sent_message.message_id, delay=config.auto_delete_delay)
 
 async def apple_services_clean_cache_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the /aps_cleancache command to clear Apple Services related caches."""

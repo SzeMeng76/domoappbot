@@ -50,9 +50,11 @@ config = get_config()
 os.makedirs(os.path.dirname(config.log_file), exist_ok=True)
 
 # 配置日志系统（带轮换和压缩）
+# 日志级别优先从环境变量 LOG_LEVEL 读取，默认为 INFO
+log_level = os.getenv("LOG_LEVEL", config.log_level).upper()
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=getattr(logging, config.log_level.upper(), logging.INFO),
+    level=getattr(logging, log_level, logging.INFO),
     handlers=[
         logging.handlers.RotatingFileHandler(
             config.log_file,

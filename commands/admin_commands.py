@@ -1,6 +1,5 @@
 import logging
 import re
-import time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import (
     ContextTypes,

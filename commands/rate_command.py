@@ -2,7 +2,6 @@
 # This module provides a /rate command to convert amounts between currencies.
 
 import logging
-import time
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -12,7 +11,6 @@ from utils.country_data import SUPPORTED_COUNTRIES # To get currency symbols
 from utils.command_factory import command_factory
 from utils.permissions import Permission
 from utils.formatter import foldable_text_v2, foldable_text_with_markdown_v2
-from utils.message_manager import schedule_message_deletion
 from utils.message_manager import schedule_message_deletion
 from utils.config_manager import get_config
 

@@ -15,35 +15,39 @@ logger = logging.getLogger(__name__)
 async def cache_user_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     自动缓存用户信息的处理器
+    注意：此处理器不应阻止消息继续传递给其他处理器
     """
-    logger.debug(f"[UserCache] 处理器被触发")
+    logger.debug("[UserCache] 处理器被触发")
 
     # 获取用户缓存管理器
     user_cache_manager = context.bot_data.get('user_cache_manager')
     if not user_cache_manager:
-        logger.error(f"[UserCache] 无法获取用户缓存管理器")
+        logger.debug("[UserCache] 无法获取用户缓存管理器")
+        logger.debug("[UserCache] 处理完成，消息继续传递")
         return
 
     # 获取消息和用户信息
     message = update.message
     if not message or not message.from_user:
-        logger.debug(f"[UserCache] 消息或用户信息为空")
-        return
+        logger.debug("[UserCache] 消息或用户信息为空")
+        logger.debug("[UserCache] 处理完成，消息继续传递")  # 调试日志
+        return  # 继续传递消息
 
     user = message.from_user
     chat_id = message.chat.id
 
-    logger.debug(f"[UserCache] 处理消息: 用户={user.id}(@{user.username}), 群组={chat_id}")
+    logger.info(f"[UserCache] 处理消息: 用户={user.id}(@{user.username}), 群组={chat_id}")
 
-    # 只缓存有用户名的用户
-    if user.username:
-        try:
-            user_cache_manager.update_user_cache(user, chat_id)
-            # 日志记录已移至 user_cache_manager 内部，此处不再重复记录
-        except Exception as e:
-            logger.error(f"[UserCache] 缓存用户信息失败: {e}")
-    else:
-        logger.debug(f"[UserCache] 跳过无用户名用户: {user.id} ({user.first_name}) 来自群组: {chat_id}")
+    # 修改：缓存所有用户，不仅仅是有用户名的用户
+    try:
+        user_cache_manager.update_user_cache(user, chat_id)
+        # 日志记录已移至 user_cache_manager 内部，此处不再重复记录
+    except Exception as e:
+        logger.debug(f"[UserCache] 缓存用户信息失败: {e}")
+    
+    # 重要：明确不返回任何阻止值，让消息继续传递给其他处理器
+    logger.debug(f"[UserCache] 处理完成群组 {chat_id}，消息继续传递给其他处理器")  # 调试日志
+    return
 
 def setup_user_cache_handler(application):
     """
@@ -53,24 +57,23 @@ def setup_user_cache_handler(application):
 
     # 检查是否启用用户缓存
     if not config.enable_user_cache:
-        logger.info("用户缓存功能已禁用，跳过设置用户缓存处理器")
+        logger.debug("用户缓存功能已禁用，跳过设置用户缓存处理器")
         return
 
     # 检查是否配置了监听群组
     if not config.user_cache_group_ids:
-        logger.info("未配置用户缓存监听群组，跳过设置用户缓存处理器")
+        logger.debug("未配置用户缓存监听群组，跳过设置用户缓存处理器")
         return
-
+    
     # 创建群组过滤器，只监听配置中的群组
     group_filter = filters.Chat(config.user_cache_group_ids)
-
-    # 创建消息处理器，只监听配置中的超级群组消息
+    
     handler = MessageHandler(
-        filters.ChatType.SUPERGROUP & filters.TEXT & group_filter,
+        group_filter,
         cache_user_info
     )
-
+    
     # 添加到应用程序，使用默认优先级
     application.add_handler(handler)
-
+    
     logger.info(f"✅ 用户缓存处理器已设置，监听 {len(config.user_cache_group_ids)} 个群组: {config.user_cache_group_ids}")
