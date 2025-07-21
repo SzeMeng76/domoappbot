@@ -1048,6 +1048,7 @@ async def get_app_prices(
 
         app_price_str = "免费"
         app_price_cny = 0.0
+        authoritative_currency = None
 
         script_tags = soup.find_all("script", type="application/ld+json")
         for script in script_tags:
@@ -1061,6 +1062,7 @@ async def get_app_prices(
                     if offers:
                         price = offers.get("price", 0)
                         currency = offers.get("priceCurrency", "USD")
+                        authoritative_currency = currency
                         category = offers.get("category", "").lower()
                         if category != "free" and float(price) > 0:
                             app_price_str = f"{price} {currency}"
@@ -1100,6 +1102,9 @@ async def get_app_prices(
                             detected_currency, price_value = extract_currency_and_price(
                                 price_str, country_code
                             )
+                            if authoritative_currency:
+                                detected_currency = authoritative_currency
+                                
                             if price_value is not None:
                                 cny_price = await rate_converter.convert(
                                     price_value, detected_currency, "CNY"
