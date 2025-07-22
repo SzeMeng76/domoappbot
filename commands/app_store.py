@@ -165,7 +165,12 @@ async def app_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             "`/app 微信`\n"
             "`/app id1643375332`\n"
             "`/app id1643375332 us jp` (查询美区和日区)\n"
-            "`/app WhatsApp US -mac`\n"
+            "`/app WhatsApp US` - 在美区搜索 iOS 应用\n\n"
+            "**平台筛选:**\n"
+            "`/app Photoshop -mac` - 搜索 macOS 应用\n"
+            "`/app Procreate -ipad` - 搜索 iPadOS 应用\n\n"
+            "💡 搜索结果将分页显示，每页5个应用，最多10页。\n"
+            "🔄 支持的平台: iOS (默认)、macOS、iPadOS"
         )
         sent_message = await context.bot.send_message(
             chat_id=update.effective_chat.id, text=foldable_text_with_markdown_v2(help_message), parse_mode="MarkdownV2"
