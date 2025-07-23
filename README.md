@@ -15,15 +15,18 @@ Read this in other languages: [简体中文](./README.zh-CN.md)
   <img src="https://github.com/SzeMeng76/domoappbot/actions/workflows/docker-publish.yml/badge.svg" alt="GitHub Actions Workflow Status" />
 </p>
 
+This is a powerful, multi-functional Telegram bot for price lookups and more, containerized with Docker for easy deployment. Forked from the original [domoxiaojun/domoappbot](https://github.com/domoxiaojun/domoappbot) with significant feature enhancements, bug fixes, and a refactored architecture using MySQL and Redis.
+
 ### ✨ Features
 
 -   **💱 Currency Conversion:** Real-time exchange rate lookups.
 -   **🎮 Steam Prices:** Query prices for Steam games and bundles across different regions.
--   **📱 App Stores:** Search for iOS, macOS, and iPadOS applications by keyword or directly by App ID.
+-   **📱 App Stores:** Search for iOS, macOS, and iPadOS applications by keyword or directly by App ID, with support for multi-country price comparison.
 -   **📺 Streaming Prices:** Check subscription costs for services like Netflix, Disney+, and Spotify.
--   **🔐 Admin System:** A comprehensive admin panel to manage user and group whitelists.
+-   **🔐 Admin System:** A comprehensive, interactive admin panel (`/admin`) to manage user/group whitelists and bot administrators.
 -   **🧹 Auto-Cleanup:** Automatically deletes commands and bot replies to keep group chats tidy.
--   **⚙️ Containerized:** The entire application stack (bot, database, cache) is managed with Docker and Docker Compose for a simple, one-command startup.
+-   **⚙️ Fully Containerized:** The entire application stack (bot, database, cache) is managed with Docker and Docker Compose for a simple, one-command startup.
+-   **🚀 Automated Setup:** The database schema is created automatically by the application on its first run, no manual `init.sql` needed.
 
 ### 🛠️ Tech Stack
 
@@ -32,11 +35,11 @@ Read this in other languages: [简体中文](./README.zh-CN.md)
 -   **Database:** MySQL
 -   **Cache:** Redis
 -   **Deployment:** Docker & Docker Compose
--   **CI/CD:** GitHub Actions
+-   **CI/CD:** GitHub Actions for automated Docker image builds and pushes.
 
 ### 🚀 Getting Started
 
-Follow these steps to get the bot up and running.
+Getting the bot up and running is designed to be as simple as possible.
 
 #### Prerequisites
 
@@ -52,44 +55,52 @@ Follow these steps to get the bot up and running.
     ```
 
 2.  **Create your configuration file:**
+    Copy the example file to create your own configuration. The bot will not start without it.
     ```bash
     cp .env.example .env
     ```
 
 3.  **Edit the `.env` file:**
-    Open the `.env` file and fill in your details, especially `BOT_TOKEN`, `SUPER_ADMIN_ID`, and `DB_PASSWORD`.
+    Open the `.env` file with a text editor and fill in the required values. See the configuration section below for details.
 
 4.  **Run the bot:**
+    Start the entire application stack with a single command:
     ```bash
     docker-compose up -d
     ```
-    The bot will start, and the database schema will be created automatically on the first run.
+    The bot will start, connect to the MySQL and Redis containers, and automatically create the necessary database tables on the first run.
 
 ### ⚙️ Configuration
 
-All bot configurations are managed through the `.env` file. Here are the key variables:
+All bot configurations are managed through the `.env` file.
 
 | Variable                    | Description                                                                 | Default/Example         |
 | --------------------------- | --------------------------------------------------------------------------- | ----------------------- |
 | `BOT_TOKEN`                 | **(Required)** Your Telegram Bot Token from @BotFather.                     |                         |
-| `SUPER_ADMIN_ID`            | **(Required)** The User ID of the main bot owner.                             |                         |
-| `DB_HOST`                   | The hostname for the database. **Should be `mysql`** to connect to the Docker service. | `mysql`                 |
+| `SUPER_ADMIN_ID`            | **(Required)** The User ID of the main bot owner. This user has all permissions. |                         |
+| `DB_HOST`                   | The hostname for the database. **Must be `mysql`** to connect to the Docker service. | `mysql`                 |
 | `DB_PORT`                   | The internal port for the database.                                         | `3306`                  |
 | `DB_NAME`                   | The name of the database. Must match `docker-compose.yml`.                  | `bot`                   |
 | `DB_USER`                   | The username for the database. Must match `docker-compose.yml`.             | `bot`                   |
 | `DB_PASSWORD`               | **(Required)** The password for the database. Must match `docker-compose.yml`. | `your_mysql_password`   |
-| `REDIS_HOST`                | The hostname for the cache. **Should be `redis`**.                          | `redis`                 |
+| `REDIS_HOST`                | The hostname for the cache. **Must be `redis`**.                          | `redis`                 |
 | `DELETE_USER_COMMANDS`      | Set to `true` to enable auto-deletion of user commands.                       | `true`                  |
-| `USER_COMMAND_DELETE_DELAY` | Delay in seconds before deleting a user's command. **Must be > 0**.     | `5`                     |
+| `USER_COMMAND_DELETE_DELAY` | Delay in seconds before deleting a user's command. Use `0` for immediate deletion. | `5`                     |
+| `DELETE_BOT_RESPONSE_MESSAGE`| Set to `true` to enable auto-deletion of the bot's own replies.              | `true`                  |
+| `DELETE_BOT_RESPONSE_DELAY` | Delay in seconds before deleting a bot's reply.                               | `900`                   |
+
 
 ### 🤖 Usage Examples
 
 -   `/help` - Get the full list of commands.
 -   `/rate usd cny 100` - Convert 100 US Dollars to Chinese Yuan.
 -   `/steam Elden Ring` - Search for the game "Elden Ring" on Steam.
--   `/app id1643375332 us` - Look up the price of an app by its ID.
+-   `/app id1643375332 us jp` - Look up the price of an app by its ID in the US and Japan stores.
 -   `/admin` - Open the interactive admin panel.
 
 ### 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome. Feel free to check the [issues page](https://github.com/SzeMeng76/domoappbot/issues).
+
+### License
+This project is licensed under the MIT License.
