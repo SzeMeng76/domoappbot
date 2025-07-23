@@ -98,6 +98,25 @@ All bot configurations are managed through the `.env` file.
 -   `/app id1643375332 us jp` - Look up the price of an app by its ID in the US and Japan stores.
 -   `/admin` - Open the interactive admin panel.
 
+### 📖 Architecture & Advanced Usage
+
+#### System Architecture
+* **MySQL:** Used for persistent storage of user permissions, whitelists (users and groups), and administrator data.
+* **Redis:** Acts as a high-performance cache for price data, exchange rates, and managing the message deletion schedule.
+* **Automatic Database Initialization:** The application will automatically create the required database tables on its first startup.
+
+#### Production Recommendations
+* Set `DEBUG=false` in your `.env` file for a production environment.
+* Configure multiple `EXCHANGE_RATE_API_KEYS` to increase API rate limits.
+* Ensure the `logs` directory has write permissions.
+* For larger-scale use, consider using managed or separate servers for MySQL and Redis.
+* Regularly back up the MySQL database.
+
+#### Further Documentation
+* **Project Architecture:** `CLAUDE.md`
+* **Docker Deployment:** `docker-compose.yml`
+* **Database Schema:** `database/init.sql`
+
 ### 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome. Feel free to check the [issues page](https://github.com/SzeMeng76/domoappbot/issues).
