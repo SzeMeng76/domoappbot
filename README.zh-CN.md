@@ -97,6 +97,25 @@ Read this in other languages: [English](./README.md)
 -   `/app id1643375332 us jp` - 在美区和日区查询指定 App ID 的应用价格。
 -   `/admin` - 打开交互式管理面板。
 
+### 📖 架构与高级用法
+
+#### 系统架构
+* **MySQL：** 用于存储用户权限、白名单、管理员等持久化数据。
+* **Redis：** 用于缓存价格数据、汇率数据，并管理消息删除调度，提高性能。
+* **自动数据库初始化：** 程序首次运行时会自动在数据库中创建必要的表结构。
+
+#### 生产环境建议
+* 在 `.env` 文件中设置 `DEBUG=false`。
+* 配置多个 `EXCHANGE_RATE_API_KEYS` 以提高汇率查询的 API 限制。
+* 确保 `logs` 目录具有写入权限。
+* 对于大规模使用，建议使用独立的 MySQL 和 Redis 服务器。
+* 定期备份 MySQL 数据库。
+
+#### 更多文档
+* **项目架构：** `CLAUDE.md`
+* **Docker部署：** `docker-compose.yml`
+* **数据库结构：** `database/init.sql`
+
 ### 🤝 贡献
 
 欢迎提交贡献、问题和功能请求。请随时查看 [Issues 页面](https://github.com/SzeMeng76/domoappbot/issues)。
