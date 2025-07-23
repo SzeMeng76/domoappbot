@@ -86,7 +86,7 @@ All bot configurations are managed through the `.env` file. Here are some of the
 | `DB_HOST`                   | The hostname for the database. **Should be `mysql`** to connect to the Docker service. | `mysql`                 |
 | `DB_PASSWORD`               | **(Required)** The password for the database user.                          | `your_mysql_password`   |
 | `REDIS_HOST`                | The hostname for the cache. **Should be `redis`**.                          | `redis`                 |
-| `DELETE_USER_COMMANDS`      | Set to `1` to enable auto-deletion of user commands.                          | `1`                     |
+| `DELETE_USER_COMMANDS`      | Set to `true` to enable auto-deletion of user commands.                       | `true`                  |
 | `USER_COMMAND_DELETE_DELAY` | Delay in seconds before deleting a user's command. **Must be > 0**.     | `5`                     |
 
 ### 🤖 Usage Examples
@@ -173,7 +173,7 @@ Contributions, issues, and feature requests are welcome. Feel free to check the 
 | `DB_HOST`                   | 数据库的主机名。**应为 `mysql`** 以连接到 Docker 服务。                   | `mysql`                 |
 | `DB_PASSWORD`               | **(必需)** 数据库用户的密码。                                           | `your_mysql_password`   |
 | `REDIS_HOST`                | 缓存的主机名。**应为 `redis`**。                                        | `redis`                 |
-| `DELETE_USER_COMMANDS`      | 设置为 `1` 以启用用户命令的自动删除。                                     | `1`                     |
+| `DELETE_USER_COMMANDS`      | 设置为 `true` 以启用用户命令的自动删除。                                  | `true`                  |
 | `USER_COMMAND_DELETE_DELAY` | 删除用户命令前的延迟（秒）。**必须大于 0**。                        | `5`                     |
 
 ### 🤖 使用示例
